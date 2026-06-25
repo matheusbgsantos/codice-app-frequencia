@@ -8,6 +8,13 @@
       "when": 1782244287824,
       "tag": "0000_robust_hannibal_king",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1782418545278,
+      "tag": "0001_add_progress_tables",
+      "breakpoints": true
     }
   ]
 }

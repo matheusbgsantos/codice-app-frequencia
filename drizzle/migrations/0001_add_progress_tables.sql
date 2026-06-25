@@ -1,0 +1,1 @@
+ALTER TABLE `authorized_emails` ADD `accessType` text DEFAULT 'lifetime' NOT NULL;

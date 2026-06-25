@@ -31,7 +31,7 @@ export async function getDb() {
       sqlite.pragma("journal_mode = WAL");
       // Auto-migrate: cria tabelas se não existirem (idempotente)
       try {
-        const migrationFiles = ["0000_bent_terror.sql","0001_medical_chat.sql","0002_remarkable_flatman.sql"];
+        const migrationFiles = ["0000_bent_terror.sql","0001_medical_chat.sql","0002_remarkable_flatman.sql","0003_progress_tables.sql"];
         const { readFileSync } = await import("fs");
         const { resolve: res, dirname: dir2 } = await import("path");
         const { fileURLToPath } = await import("url");

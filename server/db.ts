@@ -29,31 +29,21 @@ export async function getDb() {
       if (dir && dir !== "." && !existsSync(dir)) mkdirSync(dir, { recursive: true });
       const sqlite = new Database(dbPath);
       sqlite.pragma("journal_mode = WAL");
-      // Auto-migrate: cria tabelas se não existirem (idempotente)
+      // Auto-migrate: SQL embutido (idempotente) — não depende de arquivos externos
       try {
-        const migrationFiles = ["0000_bent_terror.sql","0001_medical_chat.sql","0002_remarkable_flatman.sql","0003_progress_tables.sql"];
-        const { readFileSync } = await import("fs");
-        const { resolve: res, dirname: dir2 } = await import("path");
-        const { fileURLToPath } = await import("url");
-        // Em ESM: __dirname via import.meta.url; fallback pra process.cwd()
-        let baseDir: string;
-        try {
-          const __filename2 = fileURLToPath(import.meta.url);
-          baseDir = dir2(__filename2);
-        } catch(_) {
-          baseDir = process.cwd();
+        const DDL = [
+          `CREATE TABLE IF NOT EXISTS users (id integer PRIMARY KEY AUTOINCREMENT NOT NULL, openId text NOT NULL UNIQUE, appId text, name text, email text, avatarUrl text, role text DEFAULT 'user' NOT NULL, createdAt integer DEFAULT (unixepoch()) NOT NULL, updatedAt integer DEFAULT (unixepoch()) NOT NULL)`,
+          `CREATE TABLE IF NOT EXISTS authorized_emails (id integer PRIMARY KEY AUTOINCREMENT NOT NULL, email text NOT NULL UNIQUE, accessType text DEFAULT 'lifetime' NOT NULL, createdAt integer DEFAULT (unixepoch()) NOT NULL)`,
+          `CREATE TABLE IF NOT EXISTS webhook_logs (id integer PRIMARY KEY AUTOINCREMENT NOT NULL, eventType text, email text, payload text, status text, createdAt integer DEFAULT (unixepoch()) NOT NULL)`,
+          `CREATE TABLE IF NOT EXISTS visitors (id integer PRIMARY KEY AUTOINCREMENT NOT NULL, email text NOT NULL UNIQUE, firstSeenAt integer DEFAULT (unixepoch()) NOT NULL, lastSeenAt integer DEFAULT (unixepoch()) NOT NULL, visitCount integer DEFAULT 1 NOT NULL, accessType text DEFAULT 'lifetime' NOT NULL)`,
+          `CREATE TABLE IF NOT EXISTS user_progress (id integer PRIMARY KEY AUTOINCREMENT NOT NULL, email text NOT NULL UNIQUE, activeJourneyId text, currentDay integer DEFAULT 1 NOT NULL, streakCount integer DEFAULT 0 NOT NULL, lastSessionDate text, createdAt integer DEFAULT (unixepoch()) NOT NULL, updatedAt integer DEFAULT (unixepoch()) NOT NULL)`,
+          `CREATE TABLE IF NOT EXISTS journey_day_completions (id integer PRIMARY KEY AUTOINCREMENT NOT NULL, email text NOT NULL, journeyId text NOT NULL, dayNumber integer NOT NULL, frequencyId text NOT NULL, completedAt integer DEFAULT (unixepoch()) NOT NULL)`,
+          `CREATE TABLE IF NOT EXISTS frequency_sessions (id integer PRIMARY KEY AUTOINCREMENT NOT NULL, email text NOT NULL, frequencyId text NOT NULL, mode text NOT NULL, durationSeconds integer DEFAULT 0 NOT NULL, startedAt integer DEFAULT (unixepoch()) NOT NULL)`,
+        ];
+        for (const ddl of DDL) {
+          try { sqlite.exec(ddl); } catch(_) {}
         }
-        const migrationsDir = res(baseDir, "drizzle");
-        for (const f of migrationFiles) {
-          try {
-            const sql = readFileSync(res(migrationsDir, f), "utf-8");
-            sql.split("--> statement-breakpoint").forEach(stmt => {
-              const s = stmt.trim();
-              if (s) try { sqlite.exec(s); } catch(_) {}
-            });
-          } catch(_) {}
-        }
-        console.log("[Database] Migrations aplicadas");
+        console.log("[Database] Tabelas garantidas (DDL embutido)");
       } catch (migErr) {
         console.warn("[Database] migrate erro:", migErr);
       }

@@ -33,14 +33,25 @@ export async function getDb() {
       try {
         const migrationFiles = ["0000_bent_terror.sql","0001_medical_chat.sql","0002_remarkable_flatman.sql"];
         const { readFileSync } = await import("fs");
-        const { resolve: res } = await import("path");
+        const { resolve: res, dirname: dir2 } = await import("path");
+        const { fileURLToPath } = await import("url");
+        // Em ESM: __dirname via import.meta.url; fallback pra process.cwd()
+        let baseDir: string;
+        try {
+          const __filename2 = fileURLToPath(import.meta.url);
+          baseDir = dir2(__filename2);
+        } catch(_) {
+          baseDir = process.cwd();
+        }
+        const migrationsDir = res(baseDir, "drizzle");
         for (const f of migrationFiles) {
-          const sql = readFileSync(res(process.cwd(), "drizzle", f), "utf-8");
-          // Divide por statement e executa cada um
-          sql.split("--> statement-breakpoint").forEach(stmt => {
-            const s = stmt.trim();
-            if (s) try { sqlite.exec(s); } catch(_) {}
-          });
+          try {
+            const sql = readFileSync(res(migrationsDir, f), "utf-8");
+            sql.split("--> statement-breakpoint").forEach(stmt => {
+              const s = stmt.trim();
+              if (s) try { sqlite.exec(s); } catch(_) {}
+            });
+          } catch(_) {}
         }
         console.log("[Database] Migrations aplicadas");
       } catch (migErr) {

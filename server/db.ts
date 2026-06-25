@@ -29,22 +29,22 @@ export async function getDb() {
       if (dir && dir !== "." && !existsSync(dir)) mkdirSync(dir, { recursive: true });
       const sqlite = new Database(dbPath);
       sqlite.pragma("journal_mode = WAL");
-      // Migração leve/idempotente: garante a coluna accessType em bancos
-      // já existentes (Épico 6 — gancho de assinatura). 'lifetime' é o padrão
-      // (compra única R$27,90); 'subscription' fica reservado para o futuro.
+      // Auto-migrate: cria tabelas se não existirem (idempotente)
       try {
-        const cols = sqlite
-          .prepare("PRAGMA table_info(authorized_emails)")
-          .all() as Array<{ name: string }>;
-        const hasAccessType = cols.some((c) => c.name === "accessType");
-        if (cols.length > 0 && !hasAccessType) {
-          sqlite.exec(
-            "ALTER TABLE authorized_emails ADD COLUMN accessType TEXT NOT NULL DEFAULT 'lifetime'",
-          );
-          console.log("[Database] Added column authorized_emails.accessType");
+        const migrationFiles = ["0000_bent_terror.sql","0001_medical_chat.sql","0002_remarkable_flatman.sql"];
+        const { readFileSync } = await import("fs");
+        const { resolve: res } = await import("path");
+        for (const f of migrationFiles) {
+          const sql = readFileSync(res(process.cwd(), "drizzle", f), "utf-8");
+          // Divide por statement e executa cada um
+          sql.split("--> statement-breakpoint").forEach(stmt => {
+            const s = stmt.trim();
+            if (s) try { sqlite.exec(s); } catch(_) {}
+          });
         }
+        console.log("[Database] Migrations aplicadas");
       } catch (migErr) {
-        console.warn("[Database] accessType migration skipped:", migErr);
+        console.warn("[Database] migrate erro:", migErr);
       }
       _db = drizzle(sqlite);
     } catch (error) {

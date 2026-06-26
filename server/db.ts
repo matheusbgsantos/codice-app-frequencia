@@ -552,3 +552,51 @@ export async function getStats(email: string) {
     streakCount: progress?.streakCount ?? 0,
   };
 }
+
+/** Analytics geral do app de Frequência (uso real). */
+export async function getAppAnalytics() {
+  const db = await getDb();
+  if (!db) throw new Error("[Database] not available");
+  const progressList = await db.select().from(userProgress);
+  const sessions = await db.select().from(frequencySessions);
+  const completions = await db.select().from(journeyDayCompletions);
+
+  // Usuários únicos (qualquer um que tocou áudio ou tem progresso)
+  const emails = new Set<string>();
+  progressList.forEach((p) => emails.add(p.email));
+  sessions.forEach((s) => emails.add(s.email));
+
+  // Frequências mais tocadas
+  const freqCount: Record<string, number> = {};
+  let totalSeconds = 0;
+  for (const s of sessions) {
+    freqCount[s.frequencyId] = (freqCount[s.frequencyId] || 0) + 1;
+    totalSeconds += s.durationSeconds || 0;
+  }
+  const topFrequencias = Object.entries(freqCount)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10)
+    .map(([id, plays]) => ({ frequencia: id, plays }));
+
+  // Jornadas ativas
+  const comJornada = progressList.filter((p) => p.activeJourneyId).length;
+  const dias = progressList.map((p) => p.currentDay || 1);
+  const streaks = progressList.map((p) => p.streakCount || 0);
+  const jornadaCount: Record<string, number> = {};
+  for (const p of progressList) {
+    if (p.activeJourneyId) jornadaCount[p.activeJourneyId] = (jornadaCount[p.activeJourneyId] || 0) + 1;
+  }
+
+  return {
+    totalUsuarios: emails.size,
+    totalSessoesAudio: sessions.length,
+    totalMinutosOuvidos: Math.round(totalSeconds / 60),
+    mediaMinutosPorUsuario: emails.size ? Math.round(totalSeconds / 60 / emails.size) : 0,
+    topFrequencias,
+    usuariosComJornada: comJornada,
+    porJornada: jornadaCount,
+    diaMedioJornada: dias.length ? Math.round((dias.reduce((a, b) => a + b, 0) / dias.length) * 10) / 10 : 0,
+    maiorStreak: streaks.length ? Math.max(...streaks) : 0,
+    diasConcluidos: completions.length,
+  };
+}

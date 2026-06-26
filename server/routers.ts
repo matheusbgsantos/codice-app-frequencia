@@ -197,6 +197,17 @@ export const appRouter = router({
       .query(async ({ input }) => {
         return await getStats(input.email);
       }),
+
+    // Analytics geral do app (protegido por chave simples)
+    analytics: publicProcedure
+      .input(z.object({ key: z.string() }))
+      .query(async ({ input }) => {
+        if (input.key !== "freq2026") {
+          throw new Error("Não autorizado");
+        }
+        const { getAppAnalytics } = await import("./db");
+        return await getAppAnalytics();
+      }),
   }),
 });
 

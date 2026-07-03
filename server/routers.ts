@@ -241,6 +241,20 @@ export const appRouter = router({
         const { toggleLike } = await import("./db");
         return await toggleLike(input.postId, input.email);
       }),
+    // Listar comentários de um post
+    comments: publicProcedure
+      .input(z.object({ postId: z.number() }))
+      .query(async ({ input }) => {
+        const { listarComentarios } = await import("./db");
+        return await listarComentarios(input.postId);
+      }),
+    // Criar comentário
+    comment: publicProcedure
+      .input(z.object({ postId: z.number(), email: z.string(), texto: z.string(), anon: z.boolean().optional() }))
+      .mutation(async ({ input }) => {
+        const { criarComentario } = await import("./db");
+        return await criarComentario(input.postId, input.email, input.texto, input.anon !== false);
+      }),
     // [ADMIN] listar tudo com email real
     adminList: publicProcedure
       .input(z.object({ key: z.string() }))
@@ -256,6 +270,14 @@ export const appRouter = router({
         if (input.key !== "freq2026") throw new Error("Não autorizado");
         const { ocultarPost } = await import("./db");
         return await ocultarPost(input.postId);
+      }),
+    // [ADMIN] ocultar comentário
+    adminHideComment: publicProcedure
+      .input(z.object({ key: z.string(), commentId: z.number() }))
+      .mutation(async ({ input }) => {
+        if (input.key !== "freq2026") throw new Error("Não autorizado");
+        const { ocultarComentario } = await import("./db");
+        return await ocultarComentario(input.commentId);
       }),
     // [ADMIN] banir email
     adminBan: publicProcedure

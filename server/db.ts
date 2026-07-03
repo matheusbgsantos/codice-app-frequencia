@@ -18,6 +18,7 @@ import {
   communityPosts,
   communityLikes,
   communityBanned,
+  communityComments,
   InsertCommunityPost,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
@@ -46,6 +47,7 @@ export async function getDb() {
           `CREATE TABLE IF NOT EXISTS community_posts (id integer PRIMARY KEY AUTOINCREMENT NOT NULL, email text NOT NULL, mood text, texto text, anon integer DEFAULT 1 NOT NULL, likes integer DEFAULT 0 NOT NULL, hidden integer DEFAULT 0 NOT NULL, createdAt integer DEFAULT (unixepoch()) NOT NULL)`,
           `CREATE TABLE IF NOT EXISTS community_likes (id integer PRIMARY KEY AUTOINCREMENT NOT NULL, postId integer NOT NULL, email text NOT NULL, createdAt integer DEFAULT (unixepoch()) NOT NULL)`,
           `CREATE TABLE IF NOT EXISTS community_banned (id integer PRIMARY KEY AUTOINCREMENT NOT NULL, email text NOT NULL UNIQUE, createdAt integer DEFAULT (unixepoch()) NOT NULL)`,
+          `CREATE TABLE IF NOT EXISTS community_comments (id integer PRIMARY KEY AUTOINCREMENT NOT NULL, postId integer NOT NULL, email text NOT NULL, texto text NOT NULL, anon integer DEFAULT 1 NOT NULL, hidden integer DEFAULT 0 NOT NULL, createdAt integer DEFAULT (unixepoch()) NOT NULL)`,
         ];
         for (const ddl of DDL) {
           try { sqlite.exec(ddl); } catch(_) {}
@@ -676,17 +678,63 @@ export async function listarPosts(limit = 50) {
     .where(eq(communityPosts.hidden, 0))
     .orderBy(desc(communityPosts.createdAt))
     .limit(limit);
+  // contagem de comentários visíveis por post
+  const comentarios = await db.select().from(communityComments).where(eq(communityComments.hidden, 0));
+  const countByPost: Record<number, number> = {};
+  for (const c of comentarios) countByPost[c.postId] = (countByPost[c.postId] || 0) + 1;
   return {
     posts: posts.map((p) => {
       const nome = p.anon ? "Anônimo" : (p.email.split("@")[0] || "Usuário");
       const inicial = (p.anon ? "?" : (p.email[0] || "?")).toUpperCase();
       return {
         id: p.id, mood: p.mood, texto: p.texto, likes: p.likes,
+        comentarios: countByPost[p.id] || 0,
         nome, inicial,
         createdAt: (p.createdAt instanceof Date ? p.createdAt : new Date((p.createdAt as unknown as number) * 1000)).toISOString(),
       };
     }),
   };
+}
+
+/** Lista comentários visíveis de um post (nome anônimo no público). */
+export async function listarComentarios(postId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("[Database] not available");
+  const cs = await db.select().from(communityComments)
+    .where(and(eq(communityComments.postId, postId), eq(communityComments.hidden, 0)))
+    .orderBy(communityComments.createdAt);
+  return {
+    comentarios: cs.map((c) => ({
+      id: c.id,
+      texto: c.texto,
+      nome: c.anon ? "Anônimo" : (c.email.split("@")[0] || "Usuário"),
+      inicial: (c.anon ? "?" : (c.email[0] || "?")).toUpperCase(),
+      createdAt: (c.createdAt instanceof Date ? c.createdAt : new Date((c.createdAt as unknown as number) * 1000)).toISOString(),
+    })),
+  };
+}
+
+/** Cria um comentário num post. */
+export async function criarComentario(postId: number, email: string, texto: string, anon: boolean) {
+  const db = await getDb();
+  if (!db) throw new Error("[Database] not available");
+  const e = (email || "").toLowerCase().trim();
+  if (!e) return { ok: false, motivo: "email obrigatório" };
+  const ban = await db.select().from(communityBanned).where(eq(communityBanned.email, e));
+  if (ban.length > 0) return { ok: false, motivo: "banido" };
+  const txt = (texto || "").slice(0, 400).trim();
+  if (!txt) return { ok: false, motivo: "vazio" };
+  if (!filtroLixo(txt)) return { ok: false, motivo: "conteúdo bloqueado" };
+  await db.insert(communityComments).values({ postId, email: e, texto: txt, anon: anon ? 1 : 0, hidden: 0 });
+  return { ok: true };
+}
+
+/** [ADMIN] Oculta um comentário. */
+export async function ocultarComentario(commentId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("[Database] not available");
+  await db.update(communityComments).set({ hidden: 1 }).where(eq(communityComments.id, commentId));
+  return { ok: true };
 }
 
 /** Curtir/descurtir um post (toggle por email). */

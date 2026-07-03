@@ -154,3 +154,16 @@ export const communityBanned = sqliteTable("community_banned", {
   email: text("email").notNull().unique(),
   createdAt: integer("createdAt", { mode: "timestamp" }).default(sql`(unixepoch())`).notNull(),
 });
+
+/** Comentários nos posts da comunidade. */
+export const communityComments = sqliteTable("community_comments", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  postId: integer("postId").notNull(),
+  email: text("email").notNull(),
+  texto: text("texto").notNull(),
+  anon: integer("anon").default(1).notNull(),
+  hidden: integer("hidden").default(0).notNull(),
+  createdAt: integer("createdAt", { mode: "timestamp" }).default(sql`(unixepoch())`).notNull(),
+});
+export type CommunityComment = typeof communityComments.$inferSelect;
+export type InsertCommunityComment = typeof communityComments.$inferInsert;

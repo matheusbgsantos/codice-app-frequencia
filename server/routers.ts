@@ -218,6 +218,54 @@ export const appRouter = router({
         return await getUsuariosAtivos();
       }),
   }),
+
+  // ===== COMUNIDADE ("como você está se sentindo") =====
+  community: router({
+    // Feed público (nomes anônimos)
+    list: publicProcedure
+      .query(async () => {
+        const { listarPosts } = await import("./db");
+        return await listarPosts(50);
+      }),
+    // Criar post
+    create: publicProcedure
+      .input(z.object({ email: z.string(), mood: z.string().optional(), texto: z.string().optional(), anon: z.boolean().optional() }))
+      .mutation(async ({ input }) => {
+        const { criarPost } = await import("./db");
+        return await criarPost(input.email, input.mood || "", input.texto || "", input.anon !== false);
+      }),
+    // Curtir
+    like: publicProcedure
+      .input(z.object({ postId: z.number(), email: z.string() }))
+      .mutation(async ({ input }) => {
+        const { toggleLike } = await import("./db");
+        return await toggleLike(input.postId, input.email);
+      }),
+    // [ADMIN] listar tudo com email real
+    adminList: publicProcedure
+      .input(z.object({ key: z.string() }))
+      .query(async ({ input }) => {
+        if (input.key !== "freq2026") throw new Error("Não autorizado");
+        const { listarPostsAdmin } = await import("./db");
+        return await listarPostsAdmin(200);
+      }),
+    // [ADMIN] ocultar post
+    adminHide: publicProcedure
+      .input(z.object({ key: z.string(), postId: z.number() }))
+      .mutation(async ({ input }) => {
+        if (input.key !== "freq2026") throw new Error("Não autorizado");
+        const { ocultarPost } = await import("./db");
+        return await ocultarPost(input.postId);
+      }),
+    // [ADMIN] banir email
+    adminBan: publicProcedure
+      .input(z.object({ key: z.string(), email: z.string() }))
+      .mutation(async ({ input }) => {
+        if (input.key !== "freq2026") throw new Error("Não autorizado");
+        const { banirEmail } = await import("./db");
+        return await banirEmail(input.email);
+      }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;

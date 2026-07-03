@@ -1,4 +1,4 @@
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, sql, desc, gte } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import Database from "better-sqlite3";
 import { existsSync, mkdirSync } from "fs";
@@ -15,6 +15,10 @@ import {
   userProgress,
   journeyDayCompletions,
   frequencySessions,
+  communityPosts,
+  communityLikes,
+  communityBanned,
+  InsertCommunityPost,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -39,6 +43,9 @@ export async function getDb() {
           `CREATE TABLE IF NOT EXISTS user_progress (id integer PRIMARY KEY AUTOINCREMENT NOT NULL, email text NOT NULL UNIQUE, activeJourneyId text, currentDay integer DEFAULT 1 NOT NULL, streakCount integer DEFAULT 0 NOT NULL, lastSessionDate text, createdAt integer DEFAULT (unixepoch()) NOT NULL, updatedAt integer DEFAULT (unixepoch()) NOT NULL)`,
           `CREATE TABLE IF NOT EXISTS journey_day_completions (id integer PRIMARY KEY AUTOINCREMENT NOT NULL, email text NOT NULL, journeyId text NOT NULL, dayNumber integer NOT NULL, frequencyId text NOT NULL, completedAt integer DEFAULT (unixepoch()) NOT NULL)`,
           `CREATE TABLE IF NOT EXISTS frequency_sessions (id integer PRIMARY KEY AUTOINCREMENT NOT NULL, email text NOT NULL, frequencyId text NOT NULL, mode text NOT NULL, durationSeconds integer DEFAULT 0 NOT NULL, startedAt integer DEFAULT (unixepoch()) NOT NULL)`,
+          `CREATE TABLE IF NOT EXISTS community_posts (id integer PRIMARY KEY AUTOINCREMENT NOT NULL, email text NOT NULL, mood text, texto text, anon integer DEFAULT 1 NOT NULL, likes integer DEFAULT 0 NOT NULL, hidden integer DEFAULT 0 NOT NULL, createdAt integer DEFAULT (unixepoch()) NOT NULL)`,
+          `CREATE TABLE IF NOT EXISTS community_likes (id integer PRIMARY KEY AUTOINCREMENT NOT NULL, postId integer NOT NULL, email text NOT NULL, createdAt integer DEFAULT (unixepoch()) NOT NULL)`,
+          `CREATE TABLE IF NOT EXISTS community_banned (id integer PRIMARY KEY AUTOINCREMENT NOT NULL, email text NOT NULL UNIQUE, createdAt integer DEFAULT (unixepoch()) NOT NULL)`,
         ];
         for (const ddl of DDL) {
           try { sqlite.exec(ddl); } catch(_) {}
@@ -633,4 +640,104 @@ export async function getUsuariosAtivos() {
     };
   }).sort((a, b) => (b.sessoes - a.sessoes) || (b.minutos - a.minutos));
   return { total: lista.length, usuarios: lista };
+}
+
+/* ===================== COMUNIDADE ===================== */
+const PALAVRAS_BLOQUEADAS = ["http://", "https://", "www.", ".com", "porra", "caralho", "viado", "puta que", "vai se fuder", "fdp", "filho da puta"];
+
+function filtroLixo(texto: string): boolean {
+  const t = (texto || "").toLowerCase();
+  return !PALAVRAS_BLOQUEADAS.some((p) => t.includes(p));
+}
+
+/** Cria um post na comunidade. Retorna {ok} ou {ok:false, motivo}. */
+export async function criarPost(email: string, mood: string, texto: string, anon: boolean) {
+  const db = await getDb();
+  if (!db) throw new Error("[Database] not available");
+  const e = (email || "").toLowerCase().trim();
+  if (!e) return { ok: false, motivo: "email obrigatório" };
+  // banido?
+  const ban = await db.select().from(communityBanned).where(eq(communityBanned.email, e));
+  if (ban.length > 0) return { ok: false, motivo: "banido" };
+  const txt = (texto || "").slice(0, 500).trim();
+  if (!mood && !txt) return { ok: false, motivo: "vazio" };
+  if (txt && !filtroLixo(txt)) return { ok: false, motivo: "conteúdo bloqueado" };
+  await db.insert(communityPosts).values({
+    email: e, mood: mood || null, texto: txt || null, anon: anon ? 1 : 0, likes: 0, hidden: 0,
+  } as InsertCommunityPost);
+  return { ok: true };
+}
+
+/** Lista posts visíveis (não ocultos), mais recentes primeiro. Nome anônimo no público. */
+export async function listarPosts(limit = 50) {
+  const db = await getDb();
+  if (!db) throw new Error("[Database] not available");
+  const posts = await db.select().from(communityPosts)
+    .where(eq(communityPosts.hidden, 0))
+    .orderBy(desc(communityPosts.createdAt))
+    .limit(limit);
+  return {
+    posts: posts.map((p) => {
+      const nome = p.anon ? "Anônimo" : (p.email.split("@")[0] || "Usuário");
+      const inicial = (p.anon ? "?" : (p.email[0] || "?")).toUpperCase();
+      return {
+        id: p.id, mood: p.mood, texto: p.texto, likes: p.likes,
+        nome, inicial,
+        createdAt: (p.createdAt instanceof Date ? p.createdAt : new Date((p.createdAt as unknown as number) * 1000)).toISOString(),
+      };
+    }),
+  };
+}
+
+/** Curtir/descurtir um post (toggle por email). */
+export async function toggleLike(postId: number, email: string) {
+  const db = await getDb();
+  if (!db) throw new Error("[Database] not available");
+  const e = (email || "").toLowerCase().trim();
+  if (!e) return { ok: false };
+  const existe = await db.select().from(communityLikes)
+    .where(and(eq(communityLikes.postId, postId), eq(communityLikes.email, e)));
+  if (existe.length > 0) {
+    await db.delete(communityLikes).where(eq(communityLikes.id, existe[0].id));
+    await db.update(communityPosts).set({ likes: sql`max(likes - 1, 0)` as unknown as number }).where(eq(communityPosts.id, postId));
+    return { ok: true, liked: false };
+  } else {
+    await db.insert(communityLikes).values({ postId, email: e });
+    await db.update(communityPosts).set({ likes: sql`likes + 1` as unknown as number }).where(eq(communityPosts.id, postId));
+    return { ok: true, liked: true };
+  }
+}
+
+/** [ADMIN] Lista TODOS os posts com email real, pro painel de moderação. */
+export async function listarPostsAdmin(limit = 200) {
+  const db = await getDb();
+  if (!db) throw new Error("[Database] not available");
+  const posts = await db.select().from(communityPosts)
+    .orderBy(desc(communityPosts.createdAt)).limit(limit);
+  return {
+    posts: posts.map((p) => ({
+      id: p.id, email: p.email, mood: p.mood, texto: p.texto, likes: p.likes,
+      anon: !!p.anon, hidden: !!p.hidden,
+      createdAt: (p.createdAt instanceof Date ? p.createdAt : new Date((p.createdAt as unknown as number) * 1000)).toISOString(),
+    })),
+  };
+}
+
+/** [ADMIN] Oculta (deleta do feed) um post. */
+export async function ocultarPost(postId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("[Database] not available");
+  await db.update(communityPosts).set({ hidden: 1 }).where(eq(communityPosts.id, postId));
+  return { ok: true };
+}
+
+/** [ADMIN] Bane um email da comunidade + oculta todos os posts dele. */
+export async function banirEmail(email: string) {
+  const db = await getDb();
+  if (!db) throw new Error("[Database] not available");
+  const e = (email || "").toLowerCase().trim();
+  if (!e) return { ok: false };
+  try { await db.insert(communityBanned).values({ email: e }); } catch (_) {}
+  await db.update(communityPosts).set({ hidden: 1 }).where(eq(communityPosts.email, e));
+  return { ok: true };
 }

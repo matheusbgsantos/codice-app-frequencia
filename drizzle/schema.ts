@@ -125,3 +125,32 @@ export const frequencySessions = sqliteTable("frequency_sessions", {
 
 export type FrequencySession = typeof frequencySessions.$inferSelect;
 export type InsertFrequencySession = typeof frequencySessions.$inferInsert;
+
+/** Posts da aba Comunidade ("como você está se sentindo"). */
+export const communityPosts = sqliteTable("community_posts", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  email: text("email").notNull(),
+  mood: text("mood"),
+  texto: text("texto"),
+  anon: integer("anon").default(1).notNull(),
+  likes: integer("likes").default(0).notNull(),
+  hidden: integer("hidden").default(0).notNull(),
+  createdAt: integer("createdAt", { mode: "timestamp" }).default(sql`(unixepoch())`).notNull(),
+});
+export type CommunityPost = typeof communityPosts.$inferSelect;
+export type InsertCommunityPost = typeof communityPosts.$inferInsert;
+
+/** Curtidas dos posts (1 por email por post). */
+export const communityLikes = sqliteTable("community_likes", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  postId: integer("postId").notNull(),
+  email: text("email").notNull(),
+  createdAt: integer("createdAt", { mode: "timestamp" }).default(sql`(unixepoch())`).notNull(),
+});
+
+/** Emails banidos da comunidade (moderação). */
+export const communityBanned = sqliteTable("community_banned", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  email: text("email").notNull().unique(),
+  createdAt: integer("createdAt", { mode: "timestamp" }).default(sql`(unixepoch())`).notNull(),
+});

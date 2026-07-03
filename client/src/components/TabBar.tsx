@@ -1,5 +1,5 @@
 import { useLocation } from "wouter";
-import { Compass, Library } from "lucide-react";
+import { Compass, Library, MessageCircle } from "lucide-react";
 import { usePlayer } from "@/context/PlayerContext";
 
 /**
@@ -21,6 +21,8 @@ export function TabBar() {
     location === "/jornada" || location.startsWith("/jornada/");
   const isBiblioteca =
     location === "/biblioteca" || location === "/dashboard";
+  const isComunidade =
+    location === "/comunidade" || location.startsWith("/comunidade");
 
   const tabs = [
     {
@@ -36,6 +38,13 @@ export function TabBar() {
       Icon: Library,
       active: isBiblioteca,
       to: "/biblioteca",
+    },
+    {
+      key: "comunidade",
+      label: "Comunidade",
+      Icon: MessageCircle,
+      active: isComunidade,
+      to: "/comunidade",
     },
   ];
 

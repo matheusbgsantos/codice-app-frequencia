@@ -12,6 +12,7 @@ import Dashboard from "./pages/Dashboard";
 import Player from "./pages/Player";
 import Jornadas from "./pages/Jornadas";
 import Trilha from "./pages/Trilha";
+import Comunidade from "./pages/Comunidade";
 
 function Router() {
   return (
@@ -27,6 +28,9 @@ function Router() {
       {/* Aba Biblioteca (estilo Spotify). /dashboard mantido como alias. */}
       <Route path="/biblioteca" component={Dashboard} />
       <Route path="/dashboard" component={Dashboard} />
+
+      {/* Aba Comunidade ("como você está se sentindo") */}
+      <Route path="/comunidade" component={Comunidade} />
 
       {/* Tela 3: Câmara de Ressonância (Player) */}
       <Route path="/player/:id" component={Player} />

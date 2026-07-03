@@ -51,14 +51,15 @@ function PostCard({ post, email, onChanged }: { post: any; email: string; onChan
   }
 
   return (
-    <div className="mb-3 rounded-2xl border border-[#24242b] bg-[#101014] p-4">
+    <div className={`mb-3 rounded-2xl border p-4 ${post.oficial ? "border-[#C5A059]/60 bg-gradient-to-b from-[#1a1509] to-[#101014]" : "border-[#24242b] bg-[#101014]"}`}>
       <div className="mb-2.5 flex items-center gap-2.5">
-        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-[#C5A059] to-[#7a6535] font-serif text-sm font-semibold text-[#1a1206]">
+        <div className={`flex h-9 w-9 items-center justify-center rounded-full font-serif text-sm font-semibold ${post.oficial ? "bg-gradient-to-br from-[#E8C766] to-[#C5A059] text-[#1a1206]" : "bg-gradient-to-br from-[#C5A059] to-[#7a6535] text-[#1a1206]"}`}>
           {post.inicial}
         </div>
         <div className="flex-1">
           <div className="text-sm font-semibold text-[#EAEAEA]">
             {post.nome}
+            {post.oficial ? <span className="ml-1.5 rounded bg-[#C5A059] px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[#1a1206]">✦ Oficial</span> : null}
             {post.mood ? <span className="ml-1 font-normal text-[#EAEAEA]/70">· {post.mood}</span> : null}
           </div>
           <div className="text-[11px] text-[#EAEAEA]/40">{tempoRelativo(post.createdAt)}</div>
@@ -86,12 +87,14 @@ function PostCard({ post, email, onChanged }: { post: any; email: string; onChan
           ) : (
             comentarios.map((c) => (
               <div key={c.id} className="mb-2.5 flex gap-2.5">
-                <div className="flex h-7 w-7 flex-none items-center justify-center rounded-full bg-[#24242b] text-xs font-semibold text-[#C5A059]">
+                <div className={`flex h-7 w-7 flex-none items-center justify-center rounded-full text-xs font-semibold ${c.oficial ? "bg-gradient-to-br from-[#E8C766] to-[#C5A059] text-[#1a1206]" : "bg-[#24242b] text-[#C5A059]"}`}>
                   {c.inicial}
                 </div>
-                <div className="flex-1 rounded-xl bg-[#0a0a0a] px-3 py-2">
+                <div className={`flex-1 rounded-xl px-3 py-2 ${c.oficial ? "border border-[#C5A059]/50 bg-[#1a1509]" : "bg-[#0a0a0a]"}`}>
                   <div className="text-[12px] font-semibold text-[#EAEAEA]/80">
-                    {c.nome} <span className="ml-1 font-normal text-[#EAEAEA]/35">{tempoRelativo(c.createdAt)}</span>
+                    {c.nome}
+                    {c.oficial ? <span className="ml-1 rounded bg-[#C5A059] px-1 py-0.5 text-[8px] font-bold uppercase text-[#1a1206]">✦ Oficial</span> : null}
+                    <span className="ml-1 font-normal text-[#EAEAEA]/35">{tempoRelativo(c.createdAt)}</span>
                   </div>
                   <div className="mt-0.5 text-[13px] text-[#EAEAEA]/75">{c.texto}</div>
                 </div>

@@ -646,6 +646,11 @@ export async function getUsuariosAtivos() {
 
 /* ===================== COMUNIDADE ===================== */
 const PALAVRAS_BLOQUEADAS = ["http://", "https://", "www.", ".com", "porra", "caralho", "viado", "puta que", "vai se fuder", "fdp", "filho da puta"];
+// Emails oficiais (dono/equipe) — ganham selo dourado "✦ Códice"
+const ADMIN_EMAILS = ["matheussantos0714@gmail.com"];
+function isOficial(email: string): boolean {
+  return ADMIN_EMAILS.includes((email || "").toLowerCase().trim());
+}
 
 function filtroLixo(texto: string): boolean {
   const t = (texto || "").toLowerCase();
@@ -684,12 +689,13 @@ export async function listarPosts(limit = 50) {
   for (const c of comentarios) countByPost[c.postId] = (countByPost[c.postId] || 0) + 1;
   return {
     posts: posts.map((p) => {
-      const nome = p.anon ? "Anônimo" : (p.email.split("@")[0] || "Usuário");
-      const inicial = (p.anon ? "?" : (p.email[0] || "?")).toUpperCase();
+      const oficial = isOficial(p.email);
+      const nome = oficial ? "Códice" : (p.anon ? "Anônimo" : (p.email.split("@")[0] || "Usuário"));
+      const inicial = oficial ? "✦" : (p.anon ? "?" : (p.email[0] || "?")).toUpperCase();
       return {
         id: p.id, mood: p.mood, texto: p.texto, likes: p.likes,
         comentarios: countByPost[p.id] || 0,
-        nome, inicial,
+        nome, inicial, oficial,
         createdAt: (p.createdAt instanceof Date ? p.createdAt : new Date((p.createdAt as unknown as number) * 1000)).toISOString(),
       };
     }),
@@ -704,13 +710,17 @@ export async function listarComentarios(postId: number) {
     .where(and(eq(communityComments.postId, postId), eq(communityComments.hidden, 0)))
     .orderBy(communityComments.createdAt);
   return {
-    comentarios: cs.map((c) => ({
-      id: c.id,
-      texto: c.texto,
-      nome: c.anon ? "Anônimo" : (c.email.split("@")[0] || "Usuário"),
-      inicial: (c.anon ? "?" : (c.email[0] || "?")).toUpperCase(),
-      createdAt: (c.createdAt instanceof Date ? c.createdAt : new Date((c.createdAt as unknown as number) * 1000)).toISOString(),
-    })),
+    comentarios: cs.map((c) => {
+      const oficial = isOficial(c.email);
+      return {
+        id: c.id,
+        texto: c.texto,
+        nome: oficial ? "Códice" : (c.anon ? "Anônimo" : (c.email.split("@")[0] || "Usuário")),
+        inicial: oficial ? "✦" : (c.anon ? "?" : (c.email[0] || "?")).toUpperCase(),
+        oficial,
+        createdAt: (c.createdAt instanceof Date ? c.createdAt : new Date((c.createdAt as unknown as number) * 1000)).toISOString(),
+      };
+    }),
   };
 }
 

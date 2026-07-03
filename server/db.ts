@@ -600,3 +600,37 @@ export async function getAppAnalytics() {
     diasConcluidos: completions.length,
   };
 }
+
+/** Lista usuários mais ATIVOS do app (email + engajamento), ordenado por sessões. */
+export async function getUsuariosAtivos() {
+  const db = await getDb();
+  if (!db) throw new Error("[Database] not available");
+  const progressList = await db.select().from(userProgress);
+  const sessions = await db.select().from(frequencySessions);
+  // conta sessões e segundos por email
+  const stat: Record<string, { sessoes: number; segundos: number }> = {};
+  for (const s of sessions) {
+    const e = (s.email || "").toLowerCase();
+    if (!e) continue;
+    (stat[e] ??= { sessoes: 0, segundos: 0 });
+    stat[e].sessoes += 1;
+    stat[e].segundos += s.durationSeconds || 0;
+  }
+  const progByEmail: Record<string, typeof progressList[0]> = {};
+  for (const p of progressList) progByEmail[(p.email || "").toLowerCase()] = p;
+  const todosEmails = new Set([...Object.keys(stat), ...Object.keys(progByEmail)]);
+  const lista = [...todosEmails].map((email) => {
+    const p = progByEmail[email];
+    const s = stat[email] || { sessoes: 0, segundos: 0 };
+    return {
+      email,
+      sessoes: s.sessoes,
+      minutos: Math.round(s.segundos / 60),
+      streak: p?.streakCount ?? 0,
+      diaAtual: p?.currentDay ?? 0,
+      jornadaAtiva: !!p?.activeJourneyId,
+      ultimaSessao: p?.lastSessionDate ?? null,
+    };
+  }).sort((a, b) => (b.sessoes - a.sessoes) || (b.minutos - a.minutos));
+  return { total: lista.length, usuarios: lista };
+}

@@ -208,6 +208,15 @@ export const appRouter = router({
         const { getAppAnalytics } = await import("./db");
         return await getAppAnalytics();
       }),
+    usuariosAtivos: publicProcedure
+      .input(z.object({ key: z.string() }))
+      .query(async ({ input }) => {
+        if (input.key !== "freq2026") {
+          throw new Error("Não autorizado");
+        }
+        const { getUsuariosAtivos } = await import("./db");
+        return await getUsuariosAtivos();
+      }),
   }),
 });
 

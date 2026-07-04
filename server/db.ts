@@ -652,6 +652,12 @@ function isOficial(email: string): boolean {
   return ADMIN_EMAILS.includes((email || "").toLowerCase().trim());
 }
 
+/** Pode escrever na comunidade? Comprador ativo ou admin. */
+export async function podeParticiparComunidade(email: string): Promise<boolean> {
+  if (isOficial(email)) return true;
+  return await isEmailAuthorized(email);
+}
+
 function filtroLixo(texto: string): boolean {
   const t = (texto || "").toLowerCase();
   return !PALAVRAS_BLOQUEADAS.some((p) => t.includes(p));

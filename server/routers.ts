@@ -227,20 +227,18 @@ export const appRouter = router({
         const { listarPosts } = await import("./db");
         return await listarPosts(50);
       }),
-    // Criar post (só comprador: email precisa estar autorizado)
+    // Criar post
     create: publicProcedure
       .input(z.object({ email: z.string(), mood: z.string().optional(), texto: z.string().optional(), anon: z.boolean().optional() }))
       .mutation(async ({ input }) => {
-        const { criarPost, podeParticiparComunidade } = await import("./db");
-        if (!(await podeParticiparComunidade(input.email))) return { ok: false, motivo: "não autorizado" };
+        const { criarPost } = await import("./db");
         return await criarPost(input.email, input.mood || "", input.texto || "", input.anon !== false);
       }),
-    // Curtir (só comprador)
+    // Curtir
     like: publicProcedure
       .input(z.object({ postId: z.number(), email: z.string() }))
       .mutation(async ({ input }) => {
-        const { toggleLike, podeParticiparComunidade } = await import("./db");
-        if (!(await podeParticiparComunidade(input.email))) return { ok: false, motivo: "não autorizado" };
+        const { toggleLike } = await import("./db");
         return await toggleLike(input.postId, input.email);
       }),
     // Listar comentários de um post
@@ -250,12 +248,11 @@ export const appRouter = router({
         const { listarComentarios } = await import("./db");
         return await listarComentarios(input.postId);
       }),
-    // Criar comentário (só comprador)
+    // Criar comentário
     comment: publicProcedure
       .input(z.object({ postId: z.number(), email: z.string(), texto: z.string(), anon: z.boolean().optional() }))
       .mutation(async ({ input }) => {
-        const { criarComentario, podeParticiparComunidade } = await import("./db");
-        if (!(await podeParticiparComunidade(input.email))) return { ok: false, motivo: "não autorizado" };
+        const { criarComentario } = await import("./db");
         return await criarComentario(input.postId, input.email, input.texto, input.anon !== false);
       }),
     // [ADMIN] listar tudo com email real

@@ -9,7 +9,7 @@ Tudo loopavel (duracao multipla de ciclos longos; fade so no app via loop contin
 """
 import subprocess, os, math
 
-OUT = r"C:\Users\mathe\Downloads\kirvano-app-extract\kirvano-members-v2\client\public\audio"
+OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "client", "public", "audio")
 os.makedirs(OUT, exist_ok=True)
 
 DUR = 180  # 3 minutos por faixa (loopa no player)
@@ -32,6 +32,7 @@ FREQS = {
     "abundancia":   ("tone", 888),
     # ondas cerebrais -> batida binaural (base, offset)
     "foco":         ("binaural", (200, 40)),    # Gamma 40Hz
+    "alpha-8hz":    ("binaural", (200, 8)),     # Alpha 8Hz
     "sono":         ("binaural", (150, 2.5)),   # Delta ~2.5Hz
 }
 

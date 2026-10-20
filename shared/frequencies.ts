@@ -165,6 +165,65 @@ export const frequencyData: Record<string, FrequencyData> = {
     audioUrlAmbiente: "/audio/foco-ambiente.mp3",
     audioUrlPuro: "/audio/foco-puro.mp3",
   },
+  "alpha-8hz": {
+    id: "alpha-8hz",
+    title: "ESTADO ALPHA",
+    frequency: "8Hz",
+    iconName: "Brain",
+    category: "foco",
+    tagline: "Relaxamento consciente e clareza mental",
+    description:
+      "Uma batida binaural com diferença exata de 8Hz entre os canais. O ritmo Alpha acompanha momentos de pausa, respiração e atenção tranquila, ajudando a criar um ambiente propício para relaxar sem perder a presença.",
+    audioUrlAmbiente: "/audio/alpha-8hz-ambiente.mp3",
+    howToUse: {
+      equipment:
+        "Fones de ouvido estéreo obrigatórios para perceber a diferença binaural de 8Hz entre os canais",
+      posture: "Sentado confortavelmente ou deitado, com os olhos fechados e a respiração natural",
+      duration: "Comece com 8 minutos | Ideal 15-30 minutos | Máximo 1 hora",
+      bestTime: "Em pausas durante o dia, antes de estudar, meditar ou iniciar uma tarefa criativa",
+      tips: [
+        "Use em volume baixo e confortável",
+        "Respire lentamente durante os primeiros minutos",
+        "Evite usar enquanto dirige ou opera máquinas",
+        "Interrompa a sessão caso sinta qualquer desconforto",
+      ],
+    },
+    evolution: {
+      day1: {
+        title: "🌊 PRIMEIRA SINTONIA",
+        physical:
+          "A respiração tende a ficar mais calma e o corpo encontra uma posição de descanso com mais facilidade.",
+        mental:
+          "O fluxo de pensamentos desacelera e a atenção começa a se estabilizar no momento presente.",
+        sensation:
+          "Como sair do ruído do dia e entrar em uma sala silenciosa por alguns minutos.",
+      },
+      week1: {
+        title: "🧠 PRESENÇA TRANQUILA",
+        physical:
+          "A rotina de escuta passa a funcionar como um sinal para relaxar e respirar com mais consciência.",
+        mental:
+          "Fica mais fácil criar uma transição entre agitação, estudo, meditação e trabalho concentrado.",
+        sensation:
+          "Você reconhece mais rápido o estado de calma atenta que a prática propõe.",
+      },
+      month1: {
+        title: "✨ RITUAL CONSOLIDADO",
+        physical:
+          "O corpo associa a sessão a uma pausa voluntária, favorecendo uma rotina mais equilibrada.",
+        mental:
+          "A prática ajuda a organizar momentos de reflexão, criatividade e preparação para tarefas importantes.",
+        sensation:
+          "Uma âncora sonora simples para voltar ao presente quando o dia fica acelerado.",
+      },
+      month3: {
+        title: "👑 DOMÍNIO DA PRÁTICA",
+        description:
+          "Com o uso consistente, a faixa se torna parte de um ritual pessoal de atenção e relaxamento consciente. Você aprende a reconhecer o momento de pausar, respirar e retomar suas atividades com mais intenção.",
+      },
+    },
+    audioUrlPuro: "/audio/alpha-8hz-puro.mp3",
+  },
   regeneracao: {
     id: "regeneracao",
     title: "REGENERAÇÃO",

@@ -1,0 +1,8 @@
+.git
+.railway
+.manus
+node_modules
+dist
+app
+qa
+client/public/audio

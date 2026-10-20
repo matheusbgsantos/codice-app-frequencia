@@ -47,6 +47,13 @@ async function startServer() {
   // Configure body parser with larger size limit for file uploads
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
+
+  // Em producao os audios ficam no volume persistente do Railway. Isso evita
+  // empacotar centenas de MB a cada deploy e preserva os arquivos entre versoes.
+  const audioDir = process.env.AUDIO_DIR;
+  if (audioDir) {
+    app.use("/audio", express.static(audioDir));
+  }
   
   // OAuth callback under /api/oauth/callback
   registerOAuthRoutes(app);

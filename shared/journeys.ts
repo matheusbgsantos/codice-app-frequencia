@@ -373,8 +373,8 @@ export const journeyData: Record<string, JourneyData> = {
 
 /** Ordem de exibição das jornadas na tela de lista. */
 export const journeyOrder: string[] = [
-  "jornada-calma",
   "jornada-prosperidade",
+  "jornada-calma",
   "jornada-cura",
   "jornada-recomeco",
   "jornada-despertar",

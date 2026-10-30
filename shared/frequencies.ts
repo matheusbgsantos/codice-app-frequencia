@@ -875,17 +875,18 @@ export const frequencyData: Record<string, FrequencyData> = {
 
 // Ordem e rótulos das categorias para a tela Biblioteca.
 export const categoryOrder: string[] = [
+  "prosperidade",
   "ansiedade",
-  "tristeza",
+  "foco",
   "elevar",
   "espiritualidade",
-  "foco",
   "sono",
   "cura",
-  "prosperidade",
+  "tristeza",
 ];
 
 export const categoryLabels: Record<string, string> = {
+  prosperidade: "Prosperidade & Abundância",
   ansiedade: "Ansiedade",
   tristeza: "Tristeza",
   elevar: "Elevar a Frequência",
@@ -893,5 +894,4 @@ export const categoryLabels: Record<string, string> = {
   foco: "Foco",
   sono: "Sono",
   cura: "Cura",
-  prosperidade: "Prosperidade",
 };
